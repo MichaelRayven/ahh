@@ -1,0 +1,13 @@
+[project]
+name = "ahh"
+version = "0.1.0"
+description = "Automation for hh.ru: send job applications, chat with recruiters and track offers all in one place!"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "phonenumbers>=9.0.25",
+    "playwright>=1.58.0",
+    "pydantic[email]>=2.12.5",
+    "pydantic-extra-types>=2.11.0",
+    "pydantic-settings>=2.13.1",
+]
