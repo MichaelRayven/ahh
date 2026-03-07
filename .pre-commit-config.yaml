@@ -1,0 +1,46 @@
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.1 # Ruff version.
+    hooks:
+      - id: ruff-check # Run the linter.
+        args: [--fix]
+      - id: ruff-format # Run the formatter.
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: no-commit-to-branch # Protect specific branches from direct checkins
+        args: [--branch, master, --branch, main, --branch, staging]
+      - id: check-ast # Check files are valid Python
+      - id: check-toml # Load TOML files to verify syntax
+      - id: check-yaml # Load yaml files to verify syntax
+      - id: check-merge-conflict # Check for merge conflict strings
+      - id: end-of-file-fixer # Add newline at the end of file
+      - id: check-case-conflict # Check for filename conflicts on case-insensitive FS
+      - id: debug-statements # Check for debugger imports
+      - id: mixed-line-ending # Replaces or checks mixed line ending
+      - id: name-tests-test # Verifies that test files are named correctly
+        args: [--pytest-test-first]
+        exclude: factories.py
+      - id: trailing-whitespace # Trims trailing whitespace
+
+  - repo: local
+    hooks:
+      - id: ty
+        name: type-check
+        entry: uv run ty check
+        language: system
+        types: [python]
+        pass_filenames: false
+        args: []
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: []
