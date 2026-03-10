@@ -1,8 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field, computed_field
-
-HH_VACANCY_SEARCH_URL = "https://hh.ru/search/vacancy"
+from pydantic import BaseModel, Field
 
 
 class SearchQuery(BaseModel):
@@ -44,9 +42,7 @@ class SearchQuery(BaseModel):
     )
     accredited_it: bool | None = Field(None, description="Аккредитованные IT-компании")
 
-    @computed_field
-    @property
-    def search_url(self) -> str:
+    def get_url_params(self, page: int = 0) -> str:
         params = dict.keys(self.__fields__)
         result = ""
         for param in params:
@@ -58,4 +54,7 @@ class SearchQuery(BaseModel):
                 else:
                     result += f"&{param}={value}"
 
-        return f"{HH_VACANCY_SEARCH_URL}?{result}"
+        if page > 0:
+            result += f"&page={page}"
+
+        return result

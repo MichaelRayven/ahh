@@ -4,7 +4,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.auth.schemas import AccountDetails
-from src.search.schemas import SearchQuery
+from src.pages.search import SearchQuery
 
 
 class Settings(BaseSettings):

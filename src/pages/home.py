@@ -1,5 +1,6 @@
+from playwright.async_api import Locator, Page
+
 from src.pages.base import BasePage
-from playwright.async_api import Page, Locator
 
 
 class HomePage(BasePage):
