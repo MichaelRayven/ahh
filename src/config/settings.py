@@ -4,6 +4,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.auth.schemas import AccountDetails
+from src.search.schemas import SearchQuery
 
 
 class Settings(BaseSettings):
@@ -24,7 +25,9 @@ class Settings(BaseSettings):
 
     state_path: str = "playwright/.auth/state.json"
     default_timeout: int = 15000  # milliseconds
+    concurrency: int = 4
     credentials: AccountDetails = Field(...)
+    search_query: SearchQuery = Field(...)
 
 
 @cache

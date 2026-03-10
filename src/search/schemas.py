@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, computed_field
 
+HH_VACANCY_SEARCH_URL = "https://hh.ru/search/vacancy"
+
 
 class SearchQuery(BaseModel):
     text: str | None = Field(None, description="Ключевые слова")
@@ -44,16 +46,16 @@ class SearchQuery(BaseModel):
 
     @computed_field
     @property
-    def url_params(self) -> str:
+    def search_url(self) -> str:
         params = dict.keys(self.__fields__)
         result = ""
         for param in params:
             value = getattr(self, param)
-            if value:
+            if value is not None:
                 if isinstance(value, list):
                     for item in value:
                         result += f"&{param}={item}"
                 else:
                     result += f"&{param}={value}"
 
-        return result
+        return f"{HH_VACANCY_SEARCH_URL}?{result}"

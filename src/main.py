@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from os import path
 
 from playwright.async_api import async_playwright
@@ -7,13 +8,20 @@ from src.auth.strategies.authentication_strategy import AuthenticationStrategy
 from src.auth.strategies.password_strategy import PasswordAuthenticationStrategy
 from src.auth.strategies.two_factor_strategy import TwoFactorAuthenticationStrategy
 from src.config.settings import get_app_settings
+from src.modules.auto_apply_module import AutoApplyModule
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 async def main():
     async with async_playwright() as playwright:
         browser = await playwright.firefox.launch(headless=False)
-        # Load context from state
         settings = get_app_settings()
+        # Load context from state
         if path.exists(settings.state_path):
             context = await browser.new_context(storage_state=settings.state_path)
         else:
@@ -37,6 +45,9 @@ async def main():
 
         # Save browser context (to reuse sessions)
         await context.storage_state(path=settings.state_path)
+
+        auto_apply = AutoApplyModule(context)
+        await auto_apply.run()
 
         await browser.close()
 
