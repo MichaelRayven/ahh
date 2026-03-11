@@ -21,10 +21,10 @@ class SearchPage(BasePage):
         self.next_page_link = page.locator('[data-qa="pager-next"]')
         self.prev_page_link = page.locator('[data-qa="pager-previous"]')
 
-    def navigate(self):
+    async def navigate(self):
         """Navigate to the page."""
         url = f"{self.URL}?{self._query.get_url_params()}"
-        self._page.goto(url)
+        await self._page.goto(url)
 
     def set_search_query(self, query: SearchQuery):
         self._query = query

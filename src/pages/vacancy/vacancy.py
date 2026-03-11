@@ -1,4 +1,3 @@
-from typing import Callable
 from urllib.parse import urlsplit
 
 from playwright.async_api import Page
@@ -8,12 +7,15 @@ from src.pages.base import BasePage
 from .schemas import (
     RadioAnswer,
     RadioQuestion,
+    TextAnswer,
     TextQuestion,
-    TextQuestionAnswer,
+    CheckboxAnswer,
     Vacancy,
+    VacancyStatus,
     VacancyQuestion,
     VacancyQuestionAnswer,
-    VacancyStatus,
+    CoverLetterGenerator,
+    AnswersGenerator,
 )
 
 
@@ -52,19 +54,12 @@ class VacancyQuestionsPage(BasePage):
                     for option in await radio_options.all()
                 ]
                 questions.append(
-                    VacancyQuestion(
-                        details=RadioQuestion(question=question or "", options=options),
-                    )
+                    RadioQuestion(question=question or "", options=options)
                 )
             # Text question
             elif await text_input.is_visible():
-                questions.append(
-                    VacancyQuestion(
-                        details=TextQuestion(
-                            question=question or "",
-                        ),
-                    )
-                )
+                questions.append(TextQuestion(question=question or ""))
+            # TODO: Add checkbox question type (need to find example)
             else:
                 raise ValueError(
                     f"Unknown question type for task: {question}, on page: {self.URL + '?vacancyId=' + self.id}"
@@ -75,30 +70,39 @@ class VacancyQuestionsPage(BasePage):
     async def answer_questions(self, answers: list[VacancyQuestionAnswer]) -> None:
         for idx, answer in enumerate(answers):
             task = self.tasks.nth(idx)
-            if isinstance(answer.details, RadioAnswer):
-                option = task.locator('label[data-qa="cell"]').nth(
-                    answer.details.answer
-                )
-                await option.click()
-            elif isinstance(answer.details, TextQuestionAnswer):
-                text_input = task.locator(
-                    '[data-qa="textarea-native-wrapper"] textarea'
-                )
-                await text_input.clear()
-                await text_input.fill(answer.details.answer)
-            else:
-                raise ValueError(f"Unknown question type: {answer}")
+            match answer:
+                case RadioAnswer(answer=answer):
+                    option = task.locator('label[data-qa="cell"]').nth(answer)
+                    await option.click()
+                case TextAnswer(answer=answer):
+                    text_input = task.locator(
+                        '[data-qa="textarea-native-wrapper"] textarea'
+                    )
+                    await text_input.clear()
+                    await text_input.fill(answer)
+                case CheckboxAnswer(answer=answer):
+                    for option in answer:
+                        task.locator('label[data-qa="cell"]').nth(option).click()
+                case _:
+                    raise ValueError(f"Unknown question type: {answer}")
 
 
 class VacancyPage(BasePage):
     URL = "https://hh.ru/vacancy"
 
     def __init__(
-        self, page: Page, id: str, get_cover_letter: Callable[[str], str] | None = None
+        self,
+        page: Page,
+        id: str,
+        get_cover_letter: CoverLetterGenerator | None = None,
+        get_answers: AnswersGenerator | None = None,
     ):
         super().__init__(page)
         self.id = id
         self.get_cover_letter = get_cover_letter
+        self.get_answers = get_answers
+
+        self.allow_relocation = True
 
         # Locators
         self.vacancy_salary = page.locator('[data-qa="vacancy-salary"]')
@@ -141,43 +145,62 @@ class VacancyPage(BasePage):
     async def navigate(self) -> None:
         await self._page.goto(self.URL + "/" + self.id)
 
-    async def get_vacancy_info(self) -> Vacancy:
-        salary = (
+    def set_cover_letter_generator(self, generator: CoverLetterGenerator) -> None:
+        self.get_cover_letter = generator
+
+    def set_answers_generator(self, generator: AnswersGenerator) -> None:
+        self.get_answers = generator
+
+    async def _parse_salary(self) -> str | None:
+        return (
             await self.vacancy_salary.text_content()
             if await self.vacancy_salary.is_visible()
-            else ""
+            else None
         )
-        experience = (
+
+    async def _parse_experience(self) -> str | None:
+        return (
             await self.vacancy_experience.text_content()
             if await self.vacancy_experience.is_visible()
-            else ""
+            else None
         )
-        employment_form = (
+
+    async def _parse_employment_form(self) -> str | None:
+        return (
             await self.vacancy_employment_form.text_content()
             if await self.vacancy_employment_form.is_visible()
-            else ""
+            else None
         )
-        work_format = (
+
+    async def _parse_work_format(self) -> str | None:
+        return (
             await self.vacancy_work_format.text_content()
             if await self.vacancy_work_format.is_visible()
-            else ""
+            else None
         )
-        hiring_formats = (
+
+    async def _parse_hiring_formats(self) -> str | None:
+        return (
             await self.vacancy_hiring_formats.text_content()
             if await self.vacancy_hiring_formats.is_visible()
-            else ""
+            else None
         )
-        work_schedule = (
-            await self.vacancy_work_schedule.text_content() or ""
+
+    async def _parse_work_schedule(self) -> str | None:
+        return (
+            await self.vacancy_work_schedule.text_content()
             if await self.vacancy_work_schedule.is_visible()
             else None
         )
-        working_hours = (
-            await self.vacancy_working_hours.text_content() or ""
+
+    async def _parse_working_hours(self) -> str | None:
+        return (
+            await self.vacancy_working_hours.text_content()
             if await self.vacancy_working_hours.is_visible()
             else None
         )
 
+    async def _parse_vacancy_status(self) -> VacancyStatus:
         if await self.vacancy_status_card.is_visible():
             status_string = await self.vacancy_status_card.text_content()
             if status_string == "Ваc пригласили":
@@ -189,6 +212,11 @@ class VacancyPage(BasePage):
         else:
             status = VacancyStatus.NEW
 
+        return status
+
+    async def get_vacancy_info(self) -> Vacancy:
+        status = await self._parse_vacancy_status()
+
         if status != VacancyStatus.NEW or await self.vacancy_chat.is_visible():
             is_applied_to = True
         else:
@@ -197,16 +225,33 @@ class VacancyPage(BasePage):
         return Vacancy(
             title=await self.vacancy_title.text_content() or "",
             description=await self.vacancy_description.text_content() or "",
-            work_format=work_format,
-            experience=experience,
-            salary=salary,
-            work_schedule=work_schedule,
-            hiring_formats=hiring_formats,
-            employment_form=employment_form,
-            working_hours=working_hours,
+            work_format=await self._parse_work_format(),
+            experience=await self._parse_experience(),
+            salary=await self._parse_salary(),
+            work_schedule=await self._parse_work_schedule(),
+            hiring_formats=await self._parse_hiring_formats(),
+            employment_form=await self._parse_employment_form(),
+            working_hours=await self._parse_working_hours(),
             status=status,
             is_applied_to=is_applied_to,
         )
+
+    async def _handle_relocation_warning(self):
+        """Handle relocation warning."""
+        title = self._page.locator('[data-qa="relocation-warning-title"]')
+        confirm_relocation_button = self._page.locator(
+            '[data-qa="relocation-warning-confirm"]'
+        )
+        abort_relocation_button = self._page.locator(
+            '[data-qa="relocation-warning-abort"]'
+        )
+
+        if await title.is_visible():
+            if self.allow_relocation:
+                await confirm_relocation_button.click()
+            else:
+                await abort_relocation_button.click()
+            await self._page.wait_for_load_state("networkidle")
 
     async def apply(self):
         """Apply to the vacancy if not already applied."""
@@ -221,20 +266,42 @@ class VacancyPage(BasePage):
         await self.apply_button.click()
         await self._page.wait_for_load_state("networkidle")
 
+        # Application outcomes
+        # 1. Relocation warning shown
+        # 2. Popup requiring cover letter
+        # 3. Redirected to questions page
+
+        await self._handle_relocation_warning()
+
         # Fill required cover letter
         if await self.popup_cover_letter_textarea.is_visible():
+            if self.get_cover_letter:
+                cover_letter = await self.get_cover_letter(vacancy)
             await self.popup_cover_letter_textarea.fill(cover_letter)
             await self.popup_cover_letter_submit_button.click()
             await self._page.wait_for_load_state("networkidle")
 
         # Fill optional cover letter
         if await self.cover_letter_textarea.is_visible():
+            if self.get_cover_letter:
+                cover_letter = await self.get_cover_letter(vacancy)
             await self.cover_letter_textarea.fill(cover_letter)
             await self.cover_letter_submit_button.click()
             await self._page.wait_for_load_state("networkidle")
 
         # Redirected to questions page
         if urlsplit(self._page.url).path != f"/vacancy/{self.id}":
-            # questions_page = VacancyQuestionsPage(self._page, self.id)
-            # TODO: Answer questions and submit
+            questions_page = VacancyQuestionsPage(self._page, self.id)
+            if self.get_answers:
+                questions = await questions_page.get_questions()
+                if questions:
+                    answers = await self.get_answers(vacancy, questions)
+                    await questions_page.answer_questions(answers)
+                    await questions_page.submit_button.click()
+                else:
+                    if await questions_page.skip_button.is_visible():
+                        await questions_page.skip_button.click()
+            else:
+                if await questions_page.skip_button.is_visible():
+                    await questions_page.skip_button.click()
             await self._page.wait_for_load_state("networkidle")

@@ -25,9 +25,12 @@ class Settings(BaseSettings):
 
     state_path: str = "playwright/.auth/state.json"
     default_timeout: int = 15000  # milliseconds
-    concurrency: int = 4
+    concurrency: int = 1
     credentials: AccountDetails = Field(...)
     search_query: SearchQuery = Field(...)
+
+    ollama_model: str = "qwen3.5:4b"
+    ollama_base_url: str = "http://localhost:11434"
 
 
 @cache

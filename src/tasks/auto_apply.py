@@ -1,7 +1,31 @@
+import asyncio
 import logging
+import re
+
+from langchain_ollama import ChatOllama
+from playwright.async_api import Page
 
 from src.config.settings import get_app_settings
 from src.tasks.base import BaseTask
+from src.pages.search.page import SearchPage
+from src.pages.vacancy.vacancy import VacancyPage
+from src.pages.vacancy.schemas import (
+    Vacancy,
+    VacancyQuestion,
+    VacancyQuestionAnswer,
+    TextAnswer,
+    RadioAnswer,
+    CheckboxAnswer,
+    TextQuestion,
+    RadioQuestion,
+    CheckboxQuestion,
+)
+from src.config.prompts import (
+    COVER_LETTER_PROMPT,
+    TEXT_ANSWER_PROMPT,
+    RADIO_ANSWER_PROMPT,
+    CHECKBOX_ANSWER_PROMPT,
+)
 
 settings = get_app_settings()
 logger = logging.getLogger(__name__)
@@ -10,100 +34,98 @@ logger = logging.getLogger(__name__)
 class AutoApplyTask(BaseTask):
     def __init__(self, context):
         super().__init__(context)
+        self.llm = ChatOllama(
+            model=settings.ollama_model,
+            base_url=settings.ollama_base_url,
+            temperature=0,
+        )
+
+    async def generate_cover_letter(self, vacancy: Vacancy) -> str:
+        chain = COVER_LETTER_PROMPT | self.llm
+        result = await chain.ainvoke(
+            {"title": vacancy.title, "description": vacancy.description}
+        )
+        return str(getattr(result, "content", ""))
+
+    async def generate_answers(
+        self, vacancy: Vacancy, questions: list[VacancyQuestion]
+    ) -> list[VacancyQuestionAnswer]:
+        answers = []
+        for q in questions:
+            match q:
+                case TextQuestion(question=question):
+                    chain = TEXT_ANSWER_PROMPT | self.llm.with_structured_output(
+                        TextAnswer
+                    )
+                    result = await chain.ainvoke(
+                        {"title": vacancy.title, "question": question}
+                    )
+                    answers.append(result)
+                case RadioQuestion(question=question):
+                    chain = RADIO_ANSWER_PROMPT | self.llm.with_structured_output(
+                        RadioAnswer
+                    )
+                    result = await chain.ainvoke(
+                        {
+                            "title": vacancy.title,
+                            "question": question,
+                            "options": q.format_options(),
+                        }
+                    )
+                    answers.append(result)
+                case CheckboxQuestion(question=question):
+                    chain = CHECKBOX_ANSWER_PROMPT | self.llm.with_structured_output(
+                        CheckboxAnswer
+                    )
+                    result = await chain.ainvoke(
+                        {
+                            "title": vacancy.title,
+                            "question": question,
+                            "options": q.format_options(),
+                        }
+                    )
+                    answers.append(result)
+
+        return answers
 
     async def run(self):
-        pass
-        # page = await self._context.new_page()
+        page = await self._context.new_page()
 
-        # Search
-        # search_url = settings.search_query.get_url_params()
-        # await page.goto(search_url)
+        search_page = SearchPage(page, settings.search_query)
+        await search_page.navigate()
 
-        # vacancies = await page.query_selector_all('[data-qa="serp-item__title"]')
+        vacancies = await search_page.get_vacancies_page(0)
 
-        # chunks: list[list[str]] = [[] for _ in range(settings.concurrency)]
-        # for i, link in enumerate(vacancies):
-        #     link = await link.get_attribute("href")
-        #     if link:
-        #         chunks[i % settings.concurrency].append(link)
+        chunks: list[list[str]] = [[] for _ in range(settings.concurrency)]
+        for i, link_element in enumerate(vacancies):
+            link = await link_element.get_attribute("href")
+            if link:
+                chunks[i % settings.concurrency].append(link)
 
-        # pages = [await self._context.new_page() for _ in range(settings.concurrency)]
+        pages = [await self._context.new_page() for _ in range(settings.concurrency)]
 
-        # async def _process_chunk(page: Page, chunk: list[str]):
-        #     try:
-        #         for link in chunk:
-        #             vacancy_chat_locator = page.locator(
-        #                 '[data-qa="vacancy-response-link-view-topic"]'
-        #             )
-        #             vacancy_salary_locator = page.locator('[data-qa="vacancy-salary"]')
-        #             vacancy_experience_locator = page.locator(
-        #                 '[data-qa="vacancy-experience"]'
-        #             )
-        #             vacancy_employment_form_locator = page.locator(
-        #                 '[data-qa="common-employment-text"]'
-        #             )
-        #             vacancy_work_format_locator = page.locator(
-        #                 '[data-qa="work-formats-text"]'
-        #             )
-        #             vacancy_title_locator = page.locator('[data-qa="vacancy-title"]')
-        #             vacancy_description_locator = page.locator(
-        #                 '[data-qa="vacancy-description"]'
-        #             )
-        #             apply_button_locator = page.locator(
-        #                 '[data-qa="vacancy-response-link-top"]'
-        #             )
+        async def _process_chunk(page: Page, chunk: list[str]):
+            for link in chunk:
+                match = re.search(r"/vacancy/(\d+)", link)
+                if not match:
+                    continue
+                vacancy_id = match.group(1)
 
-        #             await page.goto(link)
+                vacancy_page = VacancyPage(
+                    page=page,
+                    id=vacancy_id,
+                )
+                vacancy_page.set_cover_letter_generator(self.generate_cover_letter)
+                vacancy_page.set_answers_generator(self.generate_answers)
 
-        #             vacancy_description = (
-        #                 await vacancy_description_locator.text_content()
-        #                 if await vacancy_description_locator.is_visible()
-        #                 else None
-        #             )
-        #             vacancy_title = (
-        #                 await vacancy_title_locator.text_content()
-        #                 if await vacancy_title_locator.is_visible()
-        #                 else None
-        #             )
-        #             vacancy_salary = (
-        #                 await vacancy_salary_locator.text_content()
-        #                 if await vacancy_salary_locator.is_visible()
-        #                 else None
-        #             )
-        #             vacancy_experience = (
-        #                 await vacancy_experience_locator.text_content()
-        #                 if await vacancy_experience_locator.is_visible()
-        #                 else None
-        #             )
-        #             vacancy_employment_form = (
-        #                 await vacancy_employment_form_locator.text_content()
-        #                 if await vacancy_employment_form_locator.is_visible()
-        #                 else None
-        #             )
-        #             vacancy_work_format = (
-        #                 await vacancy_work_format_locator.text_content()
-        #                 if await vacancy_work_format_locator.is_visible()
-        #                 else None
-        #             )
+                try:
+                    await vacancy_page.navigate()
+                    await vacancy_page.apply()
+                except Exception as e:
+                    logger.error("Failed to apply to vacancy %s: %s", vacancy_id, e)
 
-        #             print(
-        #                 vacancy_description,
-        #                 vacancy_title,
-        #                 vacancy_salary,
-        #                 vacancy_experience,
-        #                 vacancy_employment_form,
-        #                 vacancy_work_format,
-        #             )
+        tasks = [
+            _process_chunk(pages[i], chunks[i]) for i in range(settings.concurrency)
+        ]
 
-        #             # Check for vacancies we've already applied to
-        #             if not await vacancy_chat_locator.is_visible():
-        #                 await apply_button_locator.first.click()
-        #                 await page.wait_for_load_state("networkidle")
-        #     except TimeoutError:
-        #         logger.error("Failed to apply: %s", link)
-
-        # tasks = [
-        #     _process_chunk(pages[i], chunks[i]) for i in range(settings.concurrency)
-        # ]
-
-        # await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks)

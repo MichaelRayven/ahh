@@ -1,7 +1,7 @@
 from enum import Enum
-from typing import Literal
+from typing import Awaitable, Callable, Literal, Annotated
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, Discriminator
 
 QuestionType = Literal["text", "radio", "checkbox"]
 
@@ -11,10 +11,9 @@ class TextQuestion(BaseModel):
     question: str
 
 
-class TextQuestionAnswer(BaseModel):
+class TextAnswer(BaseModel):
     type: QuestionType = "text"
-    question: str
-    answer: str
+    answer: str = Field(description="The concise text answer to the question.")
 
 
 class RadioQuestion(BaseModel):
@@ -22,20 +21,16 @@ class RadioQuestion(BaseModel):
     question: str
     options: list[str] = Field(default_factory=list, min_length=1)
 
+    def format_options(self) -> str:
+        """Formats options specifically for LLM prompts."""
+        return "\n".join([f"[{i}] {opt}" for i, opt in enumerate(self.options)])
+
 
 class RadioAnswer(BaseModel):
     type: QuestionType = "radio"
-    question: str
-    answer: int
-    options: list[str] = Field(default_factory=list, min_length=1)
-
-    @model_validator(mode="after")
-    def validate_answer(self):
-        if self.answer is not None and (
-            self.answer < 0 or self.answer >= len(self.options)
-        ):
-            raise ValueError("Answer index out of range. Please choose a valid option.")
-        return self
+    answer: int = Field(
+        description="The integer index of the selected option, starting from 0."
+    )
 
 
 class CheckboxQuestion(BaseModel):
@@ -43,34 +38,25 @@ class CheckboxQuestion(BaseModel):
     question: str
     options: list[str] = Field(default_factory=list, min_length=1)
 
+    def format_options(self) -> str:
+        """Formats options specifically for LLM prompts."""
+        return "\n".join([f"[{i}] {opt}" for i, opt in enumerate(self.options)])
+
 
 class CheckboxAnswer(BaseModel):
     type: QuestionType = "checkbox"
-    question: str
-    answer: set[int]
-    options: list[str] = Field(default_factory=list, min_length=1)
-
-    @model_validator(mode="after")
-    def validate_answer(self):
-        if self.answer is not None:
-            for opt in self.answer:
-                if opt < 0 or opt >= len(self.options):
-                    raise ValueError(
-                        f"Answer index {opt} out of range. Please choose a valid option."
-                    )
-        return self
-
-
-class VacancyQuestion(BaseModel):
-    details: CheckboxQuestion | RadioQuestion | TextQuestion = Field(
-        ..., discriminator="type"
+    answer: list[int] = Field(
+        description="A list of integer indices for the selected options, starting from 0."
     )
 
 
-class VacancyQuestionAnswer(BaseModel):
-    details: CheckboxAnswer | RadioAnswer | TextQuestionAnswer = Field(
-        ..., discriminator="type"
-    )
+VacancyQuestion = Annotated[
+    CheckboxQuestion | RadioQuestion | TextQuestion, Discriminator("type")
+]
+
+VacancyQuestionAnswer = Annotated[
+    CheckboxAnswer | RadioAnswer | TextAnswer, Discriminator("type")
+]
 
 
 class VacancyStatus(Enum):
@@ -93,3 +79,9 @@ class Vacancy(BaseModel):
 
     is_applied_to: bool
     status: VacancyStatus
+
+
+CoverLetterGenerator = Callable[[Vacancy], Awaitable[str]]
+AnswersGenerator = Callable[
+    [Vacancy, list[VacancyQuestion]], Awaitable[list[VacancyQuestionAnswer]]
+]
