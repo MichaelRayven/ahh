@@ -1,10 +1,20 @@
+from typing import Callable
 from urllib.parse import urlsplit
 
 from playwright.async_api import Page
 
 from src.pages.base import BasePage
 
-from .schemas import Vacancy, VacancyQuestion, VacancyStatus
+from .schemas import (
+    RadioAnswer,
+    RadioQuestion,
+    TextQuestion,
+    TextQuestionAnswer,
+    Vacancy,
+    VacancyQuestion,
+    VacancyQuestionAnswer,
+    VacancyStatus,
+)
 
 
 class VacancyQuestionsPage(BasePage):
@@ -28,12 +38,11 @@ class VacancyQuestionsPage(BasePage):
         await self._page.goto(self.URL + "?vacancyId=" + self.id)
 
     async def get_questions(self) -> list[VacancyQuestion]:
-        tasks: list[VacancyQuestion] = []
+        questions: list[VacancyQuestion] = []
         for task in await self.tasks.all():
             question = await task.locator('[data-qa="task-question"]').text_content()
-            text_area_locator = task.locator(
-                '[data-qa="textarea-native-wrapper"] textarea'
-            )
+
+            text_input = task.locator('[data-qa="textarea-native-wrapper"] textarea')
             radio_options = task.locator('label[data-qa="cell"]')
 
             # Single option question
@@ -42,20 +51,18 @@ class VacancyQuestionsPage(BasePage):
                     await option.text_content() or ""
                     for option in await radio_options.all()
                 ]
-                tasks.append(
+                questions.append(
                     VacancyQuestion(
-                        question=question or "",
-                        type="radio",
-                        options=options,
+                        details=RadioQuestion(question=question or "", options=options),
                     )
                 )
             # Text question
-            elif await text_area_locator.is_visible():
-                tasks.append(
+            elif await text_input.is_visible():
+                questions.append(
                     VacancyQuestion(
-                        question=question or "",
-                        type="text",
-                        options=[],
+                        details=TextQuestion(
+                            question=question or "",
+                        ),
                     )
                 )
             else:
@@ -63,15 +70,35 @@ class VacancyQuestionsPage(BasePage):
                     f"Unknown question type for task: {question}, on page: {self.URL + '?vacancyId=' + self.id}"
                 )
 
-        return tasks
+        return questions
+
+    async def answer_questions(self, answers: list[VacancyQuestionAnswer]) -> None:
+        for idx, answer in enumerate(answers):
+            task = self.tasks.nth(idx)
+            if isinstance(answer.details, RadioAnswer):
+                option = task.locator('label[data-qa="cell"]').nth(
+                    answer.details.answer
+                )
+                await option.click()
+            elif isinstance(answer.details, TextQuestionAnswer):
+                text_input = task.locator(
+                    '[data-qa="textarea-native-wrapper"] textarea'
+                )
+                await text_input.clear()
+                await text_input.fill(answer.details.answer)
+            else:
+                raise ValueError(f"Unknown question type: {answer}")
 
 
 class VacancyPage(BasePage):
     URL = "https://hh.ru/vacancy"
 
-    def __init__(self, page: Page, id: str):
+    def __init__(
+        self, page: Page, id: str, get_cover_letter: Callable[[str], str] | None = None
+    ):
         super().__init__(page)
         self.id = id
+        self.get_cover_letter = get_cover_letter
 
         # Locators
         self.vacancy_salary = page.locator('[data-qa="vacancy-salary"]')
@@ -200,7 +227,7 @@ class VacancyPage(BasePage):
             await self.popup_cover_letter_submit_button.click()
             await self._page.wait_for_load_state("networkidle")
 
-        # Fill optional cover letter if necessary
+        # Fill optional cover letter
         if await self.cover_letter_textarea.is_visible():
             await self.cover_letter_textarea.fill(cover_letter)
             await self.cover_letter_submit_button.click()

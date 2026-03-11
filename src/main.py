@@ -8,7 +8,7 @@ from src.auth.strategies.authentication_strategy import AuthenticationStrategy
 from src.auth.strategies.password_strategy import PasswordAuthenticationStrategy
 from src.auth.strategies.two_factor_strategy import TwoFactorAuthenticationStrategy
 from src.config.settings import get_app_settings
-from src.modules.auto_apply_module import AutoApplyModule
+from src.tasks.auto_apply import AutoApplyTask
 
 logging.basicConfig(
     level=logging.INFO,
@@ -46,7 +46,7 @@ async def main():
         # Save browser context (to reuse sessions)
         await context.storage_state(path=settings.state_path)
 
-        auto_apply = AutoApplyModule(context)
+        auto_apply = AutoApplyTask(context)
         await auto_apply.run()
 
         await browser.close()

@@ -1,14 +1,13 @@
 import logging
 
-
 from src.config.settings import get_app_settings
-from src.modules.base import Module
+from src.tasks.base import BaseTask
 
 settings = get_app_settings()
 logger = logging.getLogger(__name__)
 
 
-class AutoApplyModule(Module):
+class AutoApplyTask(BaseTask):
     def __init__(self, context):
         super().__init__(context)
 

@@ -1,4 +1,5 @@
 from playwright.async_api import Locator, Page
+
 from src.pages.base import BasePage
 
 
@@ -45,6 +46,7 @@ class AuthPage(BasePage):
         if "checked" not in (checked or ""):
             await self.phone_login_option.click()
 
+        await self.phone_input.clear()
         await self.phone_input.fill(phone)
         await self.submit_button.click()
 
@@ -56,6 +58,7 @@ class AuthPage(BasePage):
         if "checked" not in (checked or ""):
             await self.email_login_option.click()
 
+        await self.email_input.clear()
         await self.email_input.fill(email)
         await self.submit_button.click()
         self.awaiting_two_factor_code = True
@@ -78,8 +81,11 @@ class AuthPage(BasePage):
         if "checked" not in (checked or ""):
             await self.phone_login_option.click()
 
+        await self.phone_input.clear()
         await self.phone_input.fill(phone)
         await self.password_login_button.click()
+
+        await self.password_input.clear()
         await self.password_input.fill(password)
         await self.submit_button.click()
 
@@ -91,7 +97,10 @@ class AuthPage(BasePage):
         if "checked" not in (checked or ""):
             await self.email_login_option.click()
 
+        await self.email_input.clear()
         await self.email_input.fill(email)
         await self.password_login_button.click()
+
+        await self.password_input.clear()
         await self.password_input.fill(password)
         await self.submit_button.click()
