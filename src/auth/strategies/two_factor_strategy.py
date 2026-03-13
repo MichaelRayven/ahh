@@ -1,5 +1,4 @@
 from playwright.async_api import Page, TimeoutError
-
 from src.auth.schemas import AccountDetails, TwoFactorDetails
 from src.auth.strategies.authentication_strategy import AuthenticationStrategy
 
@@ -59,4 +58,4 @@ class TwoFactorAuthenticationStrategy(AuthenticationStrategy):
                 else:
                     raise TimeoutError("Two-factor authentication timed out.")
 
-        await self._page.wait_for_load_state("networkidle", timeout=10000)
+        await self._page.wait_for_load_state("networkidle")

@@ -3,7 +3,6 @@ import logging
 from os import path
 
 from playwright.async_api import async_playwright
-
 from src.auth.strategies.authentication_strategy import AuthenticationStrategy
 from src.auth.strategies.password_strategy import PasswordAuthenticationStrategy
 from src.auth.strategies.two_factor_strategy import TwoFactorAuthenticationStrategy
@@ -42,6 +41,7 @@ async def main():
                 account_details=settings.credentials,
             )
         await auth_strategy.authenticate()
+        await page.close()
 
         # Save browser context (to reuse sessions)
         await context.storage_state(path=settings.state_path)

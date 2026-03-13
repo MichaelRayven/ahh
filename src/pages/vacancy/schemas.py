@@ -1,9 +1,9 @@
 from enum import Enum
-from typing import Awaitable, Callable, Literal, Annotated
+from typing import Annotated, Awaitable, Callable, Literal
 
-from pydantic import BaseModel, Field, Discriminator
+from pydantic import BaseModel, Discriminator, Field
 
-QuestionType = Literal["text", "radio", "checkbox"]
+QuestionType = Literal["text", "radio", "radio+text", "checkbox"]
 
 
 class TextQuestion(BaseModel):
@@ -13,6 +13,10 @@ class TextQuestion(BaseModel):
 
 class TextAnswer(BaseModel):
     type: QuestionType = "text"
+    skip: bool = Field(
+        default=False,
+        description="Whether to skip this question. Use only if necessary.",
+    )
     answer: str = Field(description="The concise text answer to the question.")
 
 
@@ -28,8 +32,37 @@ class RadioQuestion(BaseModel):
 
 class RadioAnswer(BaseModel):
     type: QuestionType = "radio"
+    skip: bool = Field(
+        default=False,
+        description="Whether to skip this question. Use only if necessary.",
+    )
     answer: int = Field(
         description="The integer index of the selected option, starting from 0."
+    )
+
+
+class RadioWithTextQuestion(BaseModel):
+    type: QuestionType = "radio+text"
+    question: str
+    options: list[str] = Field(default_factory=list, min_length=1)
+
+    def format_options(self) -> str:
+        """Formats options specifically for LLM prompts."""
+        return "\n".join([f"[{i}] {opt}" for i, opt in enumerate(self.options)])
+
+
+class RadioWithTextAnswer(BaseModel):
+    type: QuestionType = "radio+text"
+    skip: bool = Field(
+        default=False,
+        description="Whether to skip this question. Use only if necessary.",
+    )
+    option: int = Field(
+        0, description="The integer index of the selected option, starting from 0."
+    )
+    answer: str | None = Field(
+        None,
+        description="The concise free-form text answer to the question. Optional, overrides option if provided.",
     )
 
 
@@ -45,17 +78,23 @@ class CheckboxQuestion(BaseModel):
 
 class CheckboxAnswer(BaseModel):
     type: QuestionType = "checkbox"
+    skip: bool = Field(
+        default=False,
+        description="Whether to skip this question. Use only if necessary.",
+    )
     answer: list[int] = Field(
         description="A list of integer indices for the selected options, starting from 0."
     )
 
 
 VacancyQuestion = Annotated[
-    CheckboxQuestion | RadioQuestion | TextQuestion, Discriminator("type")
+    CheckboxQuestion | RadioQuestion | RadioWithTextQuestion | TextQuestion,
+    Discriminator("type"),
 ]
 
 VacancyQuestionAnswer = Annotated[
-    CheckboxAnswer | RadioAnswer | TextAnswer, Discriminator("type")
+    CheckboxAnswer | RadioAnswer | RadioWithTextAnswer | TextAnswer,
+    Discriminator("type"),
 ]
 
 

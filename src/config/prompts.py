@@ -1,23 +1,50 @@
-from langchain_core.prompts import PromptTemplate
+from pydantic import BaseModel
 
-COVER_LETTER_PROMPT = PromptTemplate.from_template(
-    "You are a professional applying for a job. Write a short, professional cover letter "
-    "for the following vacancy. The output should ONLY contain the cover letter text.\n\n"
-    "Job Title: {title}\n"
-    "Description: {description}\n"
-)
 
-TEXT_ANSWER_PROMPT = PromptTemplate.from_template(
-    "You are applying for a job. Answer this question based on the vacancy details.\n"
-    "Vacancy Title: {title}\nQuestion: {question}\nProvide a concise text answer."
-)
+class PromptSettings(BaseModel):
+    cover_letter: str = (
+        "Ты - профессиональный разработчик, ищущий работу. Твоя задача - написать сопроводительное письмо для отклика на вакансию.\n\n"
+        "План выполнения:\n"
+        "1. Проанализируй описание вакансии ниже.\n"
+        "2. Выбери 2-3 ключевых требования из вакансии.\n"
+        "3. Просто пиши о своем опыте связно, но с конкретикой, чтобы показать релевантный опыт на основе моих достижений.\n"
+        "4. Избегай использования лишних слов и повторов. Используй принцип бритвы Оккама. Стиль письма деловой.\n"
+        "5. Соблюдай стандартную структуру письма: Приветствие, представление, почему я подхожу (связка мои скилы + их требования), достижения, благодарность за рассмотрение.\n\n"
+        "Важно:\n"
+        "- Конкретика: Если упоминаешь задачу/интеграцию/разработку — сразу указывай, ЧТО конкретно делал и КАКОЙ был результат (реальный, из резюме, без выдуманных цифр). Например, не 'реализовал интеграцию с CRM', а 'интегрировал онлайн-кассу с CRM для автоматической выгрузки заказов'."
+        "- Используй только реальные факты из моего резюме. НЕ выдумывай статистику и достижения, если их нет.\n"
+        "- НЕ используй фразы: требования вакансии, потребности работадателя.\n"
+        "- НЕ указывай даты (годы, месяцы) — они есть в резюме.\n"
+        "- НЕ используй тавтологии ('опытный с опытом').\n"
+        "- Будь максимально лаконичным. Письмо не должно быть длиннее 4-5 предложений.\n"
+        "Формат вывода: ТОЛЬКО текст письма. Без пояснений, без вводных слов 'Вот ваш вариант:', без форматирования (жирный шрифт, маркдаун). Просто чистый текст для вставки в поле сообщения на хэдхантер.\n\n"
+        "Шаблон твоего сопроводительного письма: {default_cover_letter}\n"
+        "Название вакансии: {title}\n"
+        "Описание: {description}\n"
+    )
 
-RADIO_ANSWER_PROMPT = PromptTemplate.from_template(
-    "You are applying for a job. Answer this multiple choice question.\n"
-    "Vacancy Title: {title}\nQuestion: {question}\nOptions: {options}\nProvide the index of the best option."
-)
+    text_answer: str = (
+        "Ты профессиональный разработчик Middle уровня, ищущий работу. Тебе нужно ответить на вопросы, чтобы откликнуться на вакансию.\n"
+        "Ответы на стандартные вопросы: {default_answers}\n"
+        "Название вакансии: {title}\n"
+        "Вопрос: {question}\n"
+        "Предоставь краткий ответ, который ты считаешь хорошо покрывающим тему."
+    )
 
-CHECKBOX_ANSWER_PROMPT = PromptTemplate.from_template(
-    "You are applying for a job. Answer this multiple choice question (multiple answers allowed).\n"
-    "Vacancy Title: {title}\nQuestion: {question}\nOptions: {options}\nProvide the indices of the best options."
-)
+    radio_answer: str = (
+        "Ты профессиональный разработчик Middle уровня, ищущий работу.  Ответь на вопрос выбрав один из вариантов, чтобы откликнуться на вакансию.\n"
+        "Ответы на стандартные вопросы: {default_answers}\n"
+        "Название вакансии: {title}\n"
+        "Вопрос: {question}\n"
+        "Варианты ответов: {options}\n"
+        "Выбери индекс лучшего варианта."
+    )
+
+    checkbox_answer: str = (
+        "Ты профессиональный разработчик Middle уровня, ищущий работу. Ответь на вопрос с множественным выбором, чтобы откликнуться на вакансию.\n"
+        "Ответы на стандартные вопросы: {default_answers}\n"
+        "Название вакансии: {title}\n"
+        "Вопрос: {question}\n"
+        "Варианты ответов: {options}\n"
+        "Выбери индексы лучших вариантов."
+    )
