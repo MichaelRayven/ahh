@@ -1,6 +1,6 @@
 from playwright.async_api import Page
 
-from src.pages.base import BasePage
+from src.common.base_page import BasePage
 
 
 class AuthPage(BasePage):

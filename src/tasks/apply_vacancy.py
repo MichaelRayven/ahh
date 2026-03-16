@@ -6,7 +6,7 @@ from src.config.settings import Settings
 from src.vacancy.pages import VacancyPage, VacancyQuestionsPage
 from src.vacancy.schemas import Vacancy, VacancyApplicationResponse
 from src.generation.services import LLMService
-from src.tasks.base import BaseTask
+from src.common.base_task import BaseTask
 
 logger = logging.getLogger(__name__)
 

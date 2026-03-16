@@ -1,7 +1,7 @@
 import phonenumbers
 
 from src.auth.schemas import AccountDetails
-from src.auth.strategies.authentication_strategy import AuthenticationStrategy
+from src.auth.strategies.base import AuthenticationStrategy
 from src.auth.pages import AuthPage
 
 

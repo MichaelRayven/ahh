@@ -1,4 +1,4 @@
-from .pages import SearchPage
+from .pages import HomePage, SearchPage
 from .schemas import SearchQuery
 
-__all__ = ["SearchPage", "SearchQuery"]
+__all__ = ["HomePage", "SearchPage", "SearchQuery"]

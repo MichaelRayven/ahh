@@ -7,7 +7,7 @@ from src.config.settings import get_app_settings
 from src.search.pages import SearchPage
 from src.tasks.apply_vacancy import ApplyVacancyTask
 from src.generation.services import LLMService
-from src.tasks.base import BaseTask
+from src.common.base_task import BaseTask
 
 settings = get_app_settings()
 logger = logging.getLogger(__name__)

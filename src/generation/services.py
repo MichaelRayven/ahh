@@ -5,7 +5,7 @@ from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from src.core.utils.hash import compute_file_hash
+from src.common.hash import compute_file_hash
 from src.config.settings import Settings
 from src.vacancy.schemas import (
     CheckboxAnswer,

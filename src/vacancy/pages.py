@@ -1,6 +1,6 @@
 from playwright.async_api import Locator, Page
 from src.config.settings import get_app_settings
-from src.pages.base import BasePage
+from src.common.base_page import BasePage
 from src.vacancy.exceptions import VacancyApplicationError
 
 from .schemas import (

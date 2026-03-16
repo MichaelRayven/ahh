@@ -4,9 +4,9 @@ from os import path
 from playwright.async_api import Browser, BrowserContext
 
 from src.config.settings import get_app_settings
-from src.auth.strategies.authentication_strategy import AuthenticationStrategy
-from src.auth.strategies.password_strategy import PasswordAuthenticationStrategy
-from src.auth.strategies.two_factor_strategy import TwoFactorAuthenticationStrategy
+from src.auth.strategies.base import AuthenticationStrategy
+from src.auth.strategies.password import PasswordAuthenticationStrategy
+from src.auth.strategies.two_factor import TwoFactorAuthenticationStrategy
 from src.auth.pages import AuthPage
 
 logger = logging.getLogger(__name__)
