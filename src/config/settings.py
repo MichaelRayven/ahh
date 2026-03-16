@@ -4,7 +4,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from src.auth.schemas import AccountDetails
 from src.config.prompts import PromptSettings
-from src.pages.search import SearchQuery
+from src.search.schemas import SearchQuery
 
 
 class Settings(BaseSettings):
@@ -30,7 +30,11 @@ class Settings(BaseSettings):
     search_query: SearchQuery = Field(..., default_factory=SearchQuery)
 
     ollama_model: str = "gemma3"
+    ollama_embedding_model: str = "nomic-embed-text"
     ollama_base_url: str = "http://localhost:11434"
+
+    postgres_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/rag"
+    default_resume_path: str | None = None
 
     prompts: PromptSettings = Field(..., default_factory=PromptSettings)
 

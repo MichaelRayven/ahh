@@ -12,15 +12,6 @@ class SearchPage(BasePage):
         super().__init__(page)
         self._query = query
 
-        # Locators
-        self.current_page_link = page.locator(
-            '[data-qa="pager-page"][aria-current="true"]'
-        )
-        self.last_page_link = page.locator('[data-qa="pager-page"]').last
-        self.first_page_link = page.locator('[data-qa="pager-page"]').first
-        self.next_page_link = page.locator('[data-qa="pager-next"]')
-        self.prev_page_link = page.locator('[data-qa="pager-previous"]')
-
     async def navigate(self):
         """Navigate to the page."""
         url = f"{self.URL}?{self._query.get_url_params()}"
@@ -52,40 +43,39 @@ class SearchPage(BasePage):
         return vacancies
 
     async def get_current_page(self) -> int:
-        return int(await self.current_page_link.text_content() or "0")
+        current_page_link = self._page.locator(
+            '[data-qa="pager-page"][aria-current="true"]'
+        )
+        return int(await current_page_link.text_content() or "0")
 
     async def get_page_count(self) -> int:
-        return int(await self.last_page_link.text_content() or 0)
+        last_page_link = self._page.locator('[data-qa="pager-page"]').last
+        return int(await last_page_link.text_content() or "0")
+
+    async def go_to_page(self, page: int):
+        """Navigate to a specific page."""
+        if page < 1 or page > await self.get_page_count():
+            return
+
+        url = f"{self.URL}?{self._query.get_url_params(page=page)}"
+        await self._page.goto(url)
 
     async def go_to_last_page(self):
         """Navigate to the last page."""
-        await self.last_page_link.click()
+        await self.go_to_page(await self.get_page_count())
 
     async def go_to_first_page(self):
         """Navigate to the first page."""
-        await self.first_page_link.click()
+        await self.go_to_page(1)
 
     async def go_to_next_page(self):
         """Navigate to the next page if available."""
         # Convert to 0-based index
-        current_page = await self.get_current_page() - 1
-        page_count = await self.get_page_count()
-
-        if current_page + 1 >= page_count:
-            return
-
-        # Navigate to next page
-        url = f"{self.URL}?{self._query.get_url_params(page=current_page + 1)}"
-        await self._page.goto(url)
+        current_page = await self.get_current_page()
+        await self.go_to_page(current_page + 1)
 
     async def go_to_prev_page(self):
         """Navigate to the previous page if available."""
         # Convert to 0-based index
-        current_page = await self.get_current_page() - 1
-
-        if current_page <= 0:
-            return
-
-        # Navigate to previous page
-        url = f"{self.URL}?{self._query.get_url_params(page=current_page - 1)}"
-        await self._page.goto(url)
+        current_page = await self.get_current_page()
+        await self.go_to_page(current_page - 1)

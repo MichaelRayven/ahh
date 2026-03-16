@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Annotated, Awaitable, Callable, Literal
 
-from pydantic import BaseModel, Discriminator, Field
+from pydantic import AliasChoices, AliasPath, BaseModel, Discriminator, Field
 
 QuestionType = Literal["text", "radio", "radio+text", "checkbox"]
 
@@ -124,3 +124,43 @@ CoverLetterGenerator = Callable[[Vacancy], Awaitable[str]]
 AnswersGenerator = Callable[
     [Vacancy, list[VacancyQuestion]], Awaitable[list[VacancyQuestionAnswer]]
 ]
+
+
+class RelocationWarning(BaseModel):
+    vacancy_id: int | None = Field(None, alias="vacancyId")
+    show: bool | None = None
+
+
+class VacancyApplicationResponse(BaseModel):
+    type: Literal["quickResponse", "test-required", "modal"] | None = None
+    response_impossible: bool | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "responseImpossible", AliasPath("body", "responseImpossible")
+        ),
+    )
+    already_applied: bool | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "alreadyApplied", AliasPath("body", "alreadyApplied")
+        ),
+    )
+    letter_required: bool | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "letterRequired",
+            AliasPath("body", "letterRequired"),
+            AliasPath("responseStatus", "shortVacancy", "@responseLetterRequired"),
+        ),
+    )
+    has_quick_response: bool | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "hasQuickResponse", AliasPath("body", "hasQuickResponse")
+        ),
+    )
+    relocation_warning: RelocationWarning | None = Field(
+        default=None,
+        alias="relocationWarning",
+    )
+    redirect_uri: str | None = None

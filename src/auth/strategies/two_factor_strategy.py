@@ -1,61 +1,67 @@
-from playwright.async_api import Page, TimeoutError
+import asyncio
+import phonenumbers
 from src.auth.schemas import AccountDetails, TwoFactorDetails
 from src.auth.strategies.authentication_strategy import AuthenticationStrategy
+from src.auth.pages import AuthPage
 
 
 class TwoFactorAuthenticationStrategy(AuthenticationStrategy):
-    def __init__(self, page: Page, account_details: AccountDetails) -> None:
-        self._page = page
+    def __init__(self, auth_page: AuthPage, account_details: AccountDetails) -> None:
+        self._auth_page = auth_page
         self._account_details = account_details
 
-    async def _is_authenticated(self) -> bool:
-        """Checks if the user is authenticated"""
-        profile_button_locator = self._page.locator(
-            '[data-qa="mainmenu_profileAndResumes"]'
-        )
-        return await profile_button_locator.is_visible()
+    async def _authenticate_with_phone(self):
+        # TODO: Choose country code
+        assert self._account_details.password is not None
+
+        await self._auth_page.select_phone_credential()
+
+        phone_number = phonenumbers.parse(self._account_details.login)
+        await self._auth_page.fill_phone_number(str(phone_number.national_number))
+
+        await self._auth_page.continue_with_two_factor_code()
+
+    async def _authenticate_with_email(self):
+        assert self._account_details.password is not None
+
+        await self._auth_page.select_email_credential()
+
+        await self._auth_page.fill_email(self._account_details.login)
+        await self._auth_page.continue_with_two_factor_code()
 
     async def authenticate(self):
-        # Locator definitions
-        login_locator = self._page.locator('[data-qa="account-signup-email"]')
-        wrong_code_label_locator = self._page.locator(
-            '[data-qa="oauth-merge-by-code__code-error-wrong_code"]'
-        )
-        two_factor_locator = self._page.locator(
-            '[data-qa="magritte-pincode-input-field"]'
-        )
-        captcha_locator = self._page.locator('[data-qa="account-captcha-picture"]')
-
         # Wait for page load
-        await self._page.goto("https://hh.ru/")
+        await self._auth_page.navigate()
 
-        if await self._is_authenticated():
+        if await self._auth_page.is_authenticated():
             return
 
         # Auth logic
-        await login_locator.fill(self._account_details.login)
-        await login_locator.press("Enter")
+        await self._auth_page.continue_to_login()
+
+        if self._account_details.login_type == "phone":
+            await self._authenticate_with_phone()
+        else:
+            await self._authenticate_with_email()
 
         logged_in = False
         while not logged_in:
-            try:
-                await two_factor_locator.wait_for()
+            if await self._auth_page.is_captcha_visible():
+                print("Please complete captcha.")
+                await asyncio.sleep(5)
+                continue
 
-                two_factor_details = TwoFactorDetails(
-                    two_factor_code=input("Please provide the code: ")
-                )
-                await two_factor_locator.fill(two_factor_details.two_factor_code)
+            two_factor_details = TwoFactorDetails(
+                two_factor_code=input("Please provide the code: ")
+            )
+            await self._auth_page.fill_two_factor_code(
+                two_factor_details.two_factor_code
+            )
 
-                if await wrong_code_label_locator.is_visible():
-                    two_factor_locator.clear()
-                    print("Wrong code. Please try again.")
-                    continue
+            if await self._auth_page.is_two_factor_code_wrong():
+                print("Wrong code. Please try again.")
+                continue
 
-                logged_in = True
-            except TimeoutError:
-                if await captcha_locator.is_visible():
-                    print("Please complete captcha.")
-                else:
-                    raise TimeoutError("Two-factor authentication timed out.")
+            logged_in = True
 
-        await self._page.wait_for_load_state("networkidle")
+        await self._auth_page._page.wait_for_load_state("networkidle")
