@@ -10,6 +10,48 @@
 - Работа с несколькими аккаунтами
 - Агрегация по настоящему важных сообщений
 
+### Локальная разработка
+1. Установка пакетного менеджера uv
+  - Windows
+  ```bash
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+  ```
+  - MacOS / Linux
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+2. Установка Ollama
+  - Windows
+  ```bash
+  irm https://ollama.com/install.ps1 | iex
+  ```
+  - MacOS / Linux
+  ```bash
+  curl -fsSL https://ollama.com/install.sh | sh
+  ```
+3. Установка моделей
+```bash
+# Название embedding модели укажите в .env OLLAMA_EMBEDDING_MODEL
+ollama pull <your_embedding_model>
+```
+```bash
+# Название модели укажите в .env OLLAMA_MODEL
+ollama pull <your_model>
+```
+4. Установка пакетов
+```bash
+uv venv --python 3.13
+uv sync
+```
+5. Развертка инфраструктуры
+```bash
+docker compose -f infra/docker-compose.yml up -d
+```
+6. Запуск приложения
+```bash
+uv run python -m src.main
+```
+
 ### Модули
 - [x] Автоотклики
 - [ ] Генерация сопроводительных писем

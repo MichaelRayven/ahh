@@ -1,8 +1,9 @@
 import asyncio
+
 import phonenumbers
+from src.auth.pages import AuthPage
 from src.auth.schemas import AccountDetails, TwoFactorDetails
 from src.auth.strategies.base import AuthenticationStrategy
-from src.auth.pages import AuthPage
 
 
 class TwoFactorAuthenticationStrategy(AuthenticationStrategy):
@@ -63,5 +64,3 @@ class TwoFactorAuthenticationStrategy(AuthenticationStrategy):
                 continue
 
             logged_in = True
-
-        await self._auth_page._page.wait_for_load_state("networkidle")

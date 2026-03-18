@@ -1,13 +1,12 @@
 import logging
-from os import path
+from os import makedirs, path
 
 from playwright.async_api import Browser, BrowserContext
-
-from src.config.settings import get_app_settings
+from src.auth.pages import AuthPage
 from src.auth.strategies.base import AuthenticationStrategy
 from src.auth.strategies.password import PasswordAuthenticationStrategy
 from src.auth.strategies.two_factor import TwoFactorAuthenticationStrategy
-from src.auth.pages import AuthPage
+from src.config.settings import get_app_settings
 
 logger = logging.getLogger(__name__)
 settings = get_app_settings()
@@ -60,13 +59,19 @@ class AuthService:
                 account_details=credentials,
             )
 
-        await auth_strategy.authenticate()
+        async with page.expect_request_finished(
+            lambda req: "/account/login" in req.url and req.method == "POST"
+        ):
+            await auth_strategy.authenticate()
 
         # We assume authenticate succeeded at this point
         logger.info("Authentication complete. Saving context ...")
-        await page.close()
 
         # Save browser context (to reuse sessions)
+        state_directory = path.dirname(settings.state_path)
+        if not path.exists(state_directory):
+            makedirs(state_directory)
         await context.storage_state(path=settings.state_path)
 
+        await page.close()
         return context
