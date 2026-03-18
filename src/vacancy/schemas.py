@@ -126,27 +126,22 @@ AnswersGenerator = Callable[
 ]
 
 
-class RelocationWarning(BaseModel):
-    vacancy_id: int | None = Field(None, alias="vacancyId")
-    show: bool | None = None
-
-
-class VacancyApplicationResponse(BaseModel):
+class VacancyPopupResponse(BaseModel):
     type: Literal["quickResponse", "test-required", "modal"] | None = None
-    response_impossible: bool | None = Field(
-        default=None,
+    is_response_impossible: bool = Field(
+        default=False,
         validation_alias=AliasChoices(
             "responseImpossible", AliasPath("body", "responseImpossible")
         ),
     )
-    already_applied: bool | None = Field(
-        default=None,
+    is_already_applied: bool = Field(
+        default=False,
         validation_alias=AliasChoices(
             "alreadyApplied", AliasPath("body", "alreadyApplied")
         ),
     )
-    letter_required: bool | None = Field(
-        default=None,
+    is_letter_required: bool = Field(
+        default=False,
         validation_alias=AliasChoices(
             "letterRequired",
             AliasPath("body", "letterRequired"),
@@ -159,8 +154,24 @@ class VacancyApplicationResponse(BaseModel):
             "hasQuickResponse", AliasPath("body", "hasQuickResponse")
         ),
     )
-    relocation_warning: RelocationWarning | None = Field(
-        default=None,
-        alias="relocationWarning",
+    is_relocation_warning: bool = Field(
+        default=False,
+        validation_alias=AliasPath("relocationWarning", "show"),
     )
     redirect_uri: str | None = None
+
+    @property
+    def is_test_required(self) -> bool:
+        return self.type == "test-required"
+
+
+class VacancyApplicationResponse(BaseModel):
+    success: bool
+    topic_id: str
+    chat_id: str
+    vacancy_id: str
+
+
+class VacancyApplicationEditResponse(BaseModel):
+    success: bool = False
+    error: str | None = None

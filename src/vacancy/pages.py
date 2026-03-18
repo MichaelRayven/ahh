@@ -1,7 +1,6 @@
 from playwright.async_api import Locator, Page
 from src.config.settings import get_app_settings
 from src.common.base_page import BasePage
-from src.vacancy.exceptions import VacancyApplicationError
 
 from .schemas import (
     CheckboxAnswer,
@@ -52,6 +51,8 @@ class VacancyQuestionsPage(BasePage):
 
     async def get_questions(self) -> list[VacancyQuestion]:
         tasks = self._page.locator('[data-qa="task-body"]')
+        await tasks.first.wait_for(state="visible")
+
         questions: list[VacancyQuestion] = []
 
         for task in await tasks.all():
@@ -121,23 +122,11 @@ class VacancyQuestionsPage(BasePage):
 
     async def apply(self) -> None:
         submit_button = self._page.locator('[data-qa="vacancy-response-submit-popup"]')
-        skip_button = self._page.locator(
-            '[data-qa="vacancy-response-link-no-questions"]'
-        )
+        # skip_button = self._page.locator(
+        #     '[data-qa="vacancy-response-link-no-questions"]'
+        # )
 
-        # Try to submit with questions
-        # Fails if there are questions that need to be answered
-        if await submit_button.is_visible():
-            await submit_button.click()
-            await self._page.wait_for_load_state("networkidle")
-
-        # Try to submit without questions
-        # Fails if the test is required
-        if await skip_button.is_visible():
-            await skip_button.click()
-            await self._page.wait_for_load_state("networkidle")
-
-        raise VacancyApplicationError(f"Failed to apply for vacancy {self.id}")
+        await submit_button.click()
 
     async def attach_cover_letter(self, cover_letter: str) -> None:
         """Handle optional cover letter."""
