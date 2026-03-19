@@ -1,15 +1,17 @@
-from src.vacancy.schemas import (
-    VacancyApplicationResponse,
-    VacancyApplicationEditResponse,
-)
 import logging
 
 from playwright.async_api import BrowserContext, Page
-from src.config.settings import Settings
-from src.vacancy.pages import VacancyPage, VacancyQuestionsPage
-from src.vacancy.schemas import Vacancy, VacancyPopupResponse
-from src.generation.services import LLMService
 from src.common.base_task import BaseTask
+from src.common.config.settings import Settings
+from src.features.generation import LLMService
+from src.features.vacancy import (
+    Vacancy,
+    VacancyApplicationEditResponse,
+    VacancyApplicationResponse,
+    VacancyPage,
+    VacancyPopupResponse,
+    VacancyQuestionsPage,
+)
 
 logger = logging.getLogger(__name__)
 

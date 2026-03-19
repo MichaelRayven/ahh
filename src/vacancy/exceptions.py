@@ -1,2 +1,0 @@
-class VacancyApplicationError(Exception):
-    pass

@@ -2,11 +2,11 @@ import logging
 from os import makedirs, path
 
 from playwright.async_api import Browser, BrowserContext
-from src.auth.pages import AuthPage
-from src.auth.strategies.base import AuthenticationStrategy
-from src.auth.strategies.password import PasswordAuthenticationStrategy
-from src.auth.strategies.two_factor import TwoFactorAuthenticationStrategy
-from src.config.settings import get_app_settings
+from src.common.config.settings import get_app_settings
+from src.features.auth.pages import AuthPage
+from src.features.auth.strategies.base import AuthenticationStrategy
+from src.features.auth.strategies.password import PasswordAuthenticationStrategy
+from src.features.auth.strategies.two_factor import TwoFactorAuthenticationStrategy
 
 logger = logging.getLogger(__name__)
 settings = get_app_settings()
@@ -18,8 +18,7 @@ class AuthService:
 
     async def get_authenticated_context(self) -> BrowserContext:
         """
-        Creates or loads a browser context, authenticates if necessary,
-        and saves the state for subsequent usage.
+        Creates or loads an authenticated browser context.
         """
         # Load context from state
         if path.exists(settings.state_path):

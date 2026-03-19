@@ -2,9 +2,9 @@ from functools import cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from src.auth.schemas import AccountDetails
-from src.config.prompts import PromptSettings
-from src.search.schemas import SearchQuery
+from src.common.config.prompts import PromptSettings
+from src.features.auth.schemas import AccountDetails
+from src.features.search.schemas import SearchQuery
 
 
 class Settings(BaseSettings):

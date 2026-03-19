@@ -1,8 +1,9 @@
 import asyncio
 import logging
+
 from playwright.async_api import async_playwright
+from src.features.auth import AuthService
 from src.tasks.auto_apply import AutoApplyTask
-from src.auth.services import AuthService
 
 logging.basicConfig(
     level=logging.INFO,

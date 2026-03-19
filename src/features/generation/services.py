@@ -1,13 +1,13 @@
 import logging
+
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.prompts import PromptTemplate
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-from src.common.hash import compute_file_hash
-from src.config.settings import Settings
-from src.vacancy.schemas import (
+from src.common.config.settings import Settings
+from src.common.utils.hash import compute_file_hash
+from src.features.vacancy.schemas import (
     CheckboxAnswer,
     CheckboxQuestion,
     RadioAnswer,
@@ -22,6 +22,10 @@ from src.vacancy.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# Separate questions page handling and service?
+# LLM Repository?
 
 
 class LLMService:

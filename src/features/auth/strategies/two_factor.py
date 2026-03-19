@@ -1,9 +1,9 @@
 import asyncio
 
 import phonenumbers
-from src.auth.pages import AuthPage
-from src.auth.schemas import AccountDetails, TwoFactorDetails
-from src.auth.strategies.base import AuthenticationStrategy
+from src.features.auth.pages import AuthPage
+from src.features.auth.schemas import AccountDetails, TwoFactorDetails
+from src.features.auth.strategies.base import AuthenticationStrategy
 
 
 class TwoFactorAuthenticationStrategy(AuthenticationStrategy):
