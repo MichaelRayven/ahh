@@ -1,0 +1,12 @@
+from abc import ABC, abstractmethod
+
+from playwright.async_api import BrowserContext
+
+
+class BaseTask(ABC):
+    def __init__(self, context: BrowserContext):
+        self._context = context
+
+    @abstractmethod
+    def run(self):
+        pass
